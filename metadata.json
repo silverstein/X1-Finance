@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Finance Explorer",
+  "description": "A modern, AI-powered financial market overview application that mimics the Google Finance interface, using Gemini to provide real-time market summaries, stock analysis, and news.",
+  "requestFramePermissions": []
+}
