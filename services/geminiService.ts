@@ -13,47 +13,66 @@ if (!API_KEY) {
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 /**
- * A robust JSON parser that extracts the first complete JSON object or array 
- * from a string, ignoring any leading/trailing non-JSON text.
- * @param jsonString The string to parse.
+ * A robust JSON parser that handles extraneous text and markdown from the API.
+ * It finds and parses the first complete JSON object or array in a string.
+ * @param text The string to parse.
  * @returns The parsed JSON object or array.
  */
-const robustJsonParse = (jsonString: string): any => {
-    // Attempt to find the first occurrence of a JSON object or array
-    const jsonStart = jsonString.indexOf('{');
-    const arrayStart = jsonString.indexOf('[');
+const robustJsonParse = (text: string): any => {
+    // 1. First, try to find a JSON blob within a markdown code block
+    const markdownMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+    if (markdownMatch && markdownMatch[1]) {
+        try {
+            return JSON.parse(markdownMatch[1]);
+        } catch (e) {
+            console.warn("Failed to parse JSON from markdown block, attempting to find in full text.", e);
+        }
+    }
+
+    // 2. If no markdown, find the first '{' or '['
+    const jsonStart = text.indexOf('{');
+    const arrayStart = text.indexOf('[');
     
     let start = -1;
-    if (jsonStart !== -1 && arrayStart !== -1) {
-      start = Math.min(jsonStart, arrayStart);
-    } else if (jsonStart !== -1) {
-      start = jsonStart;
-    } else {
-      start = arrayStart;
+    if (jsonStart !== -1 && (arrayStart === -1 || jsonStart < arrayStart)) {
+        start = jsonStart;
+    } else if (arrayStart !== -1) {
+        start = arrayStart;
     }
-  
+
     if (start === -1) {
-      console.error("No JSON object or array found in the string:", jsonString);
-      throw new Error("No JSON object or array found in the string.");
+        throw new Error("No JSON object or array found in the string.");
     }
     
-    // Attempt to find the last occurrence of a JSON object or array
-    const jsonEnd = jsonString.lastIndexOf('}');
-    const arrayEnd = jsonString.lastIndexOf(']');
-    const end = Math.max(jsonEnd, arrayEnd);
+    // 3. Find the matching closing bracket, accounting for nesting.
+    const startChar = text[start];
+    const endChar = startChar === '{' ? '}' : ']';
+    let openBrackets = 0;
+    let end = -1;
 
-    if (end === -1) {
-      console.error("Incomplete JSON structure:", jsonString);
-      throw new Error("Incomplete JSON structure.");
+    for (let i = start; i < text.length; i++) {
+        if (text[i] === startChar) {
+            openBrackets++;
+        } else if (text[i] === endChar) {
+            openBrackets--;
+        }
+
+        if (openBrackets === 0) {
+            end = i;
+            break;
+        }
     }
 
-    const jsonSnippet = jsonString.substring(start, end + 1);
+    if (end === -1) {
+        throw new Error("Incomplete JSON structure found in the string.");
+    }
+
+    const jsonSnippet = text.substring(start, end + 1);
 
     try {
         return JSON.parse(jsonSnippet);
     } catch (e) {
         console.error("Failed to parse extracted JSON snippet:", jsonSnippet, e);
-        // Fallback to parsing the whole string if snipping fails
         throw new Error("Failed to parse JSON response from API.");
     }
 };
@@ -75,6 +94,7 @@ Return the data as a valid JSON array matching this structure:
     "chartData": [{ "value": number }]
   }
 ]
+IMPORTANT: Do not include any text, explanations, or markdown formatting outside of the final JSON array. The entire response must be only the JSON data.
 `;
 
   try {
@@ -124,6 +144,7 @@ Return the data as a single valid JSON object matching this structure:
   "analysis": "string",
   "chartData": [{ "dateTime": "string", "price": number }]
 }
+IMPORTANT: Do not include any text, explanations, or markdown formatting outside of the final JSON object. The entire response must be only the JSON data.
 `;
 
     try {
@@ -185,6 +206,7 @@ Return the data as a valid JSON array matching this structure:
     "publicationDate": "string"
   }
 ]
+IMPORTANT: Do not include any text, explanations, or markdown formatting outside of the final JSON array. The entire response must be only the JSON data.
 `;
 
     try {
@@ -234,7 +256,7 @@ Return the data as a single valid JSON array matching this structure:
     "metrics": [{ "name": "string", "value": "string" }]
   }
 ]
-Do not include any text outside of the JSON array.
+IMPORTANT: Do not include any text, explanations, or markdown formatting outside of the final JSON array. The entire response must be only the JSON data.
 `;
 
     try {
@@ -249,8 +271,10 @@ Do not include any text outside of the JSON array.
         
         let fullResponseText = '';
         for await (const chunk of responseStream) {
-          if (chunk.thinkingResult) {
-            onReasoningUpdate(chunk.thinkingResult.text);
+          // FIX: The 'thinkingResult' property exists on streaming chunks but is not in the
+          // default 'GenerateContentResponse' type from the SDK. Cast to 'any' to access it.
+          if ((chunk as any).thinkingResult) {
+            onReasoningUpdate((chunk as any).thinkingResult.text);
           }
           if (chunk.text) {
             fullResponseText += chunk.text;
