@@ -1,17 +1,21 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import LeftSidebar from './components/LeftSidebar';
 import MainContent from './components/MainContent';
 import ResearchPanel from './components/ResearchPanel';
-import { getMarketSummary, getStockData, getResearchSummary, getMarketNews, getScreenerResults } from './services/geminiService';
-import type { MarketIndex, StockData, NewsArticle, StockScreenerResult } from './types';
+import { getInitialDashboardData, getStockData, getScreenerResults } from './services/geminiService';
+import type { MarketIndex, StockData, NewsArticle, StockScreenerResult, LatestUpdate, MarketSummaryArticle, UpcomingEarning, SidebarData } from './types';
 
 const App: React.FC = () => {
   const [marketIndices, setMarketIndices] = useState<MarketIndex[]>([]);
   const [stockData, setStockData] = useState<StockData | null>(null);
   const [researchSummary, setResearchSummary] = useState<string>('');
   const [newsArticles, setNewsArticles] = useState<NewsArticle[]>([]);
+  const [latestUpdates, setLatestUpdates] = useState<LatestUpdate[]>([]);
+  const [marketSummaryArticle, setMarketSummaryArticle] = useState<MarketSummaryArticle | null>(null);
+  const [upcomingEarnings, setUpcomingEarnings] = useState<UpcomingEarning[]>([]);
+  const [sidebarData, setSidebarData] = useState<SidebarData | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -29,14 +33,43 @@ const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [indices, summary, news] = await Promise.all([
-        getMarketSummary(),
-        getResearchSummary(),
-        getMarketNews(),
-      ]);
-      setMarketIndices(indices);
-      setResearchSummary(summary);
-      setNewsArticles(news);
+      // Client-side caching to prevent hitting API rate limits during development/session.
+      const CACHE_KEY = 'dashboardData';
+      const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+      const cachedItem = sessionStorage.getItem(CACHE_KEY);
+
+      if (cachedItem) {
+        const { timestamp, data } = JSON.parse(cachedItem);
+        if (new Date().getTime() - timestamp < CACHE_TTL) {
+          console.log("Loading initial data from session cache.");
+          setMarketIndices(data.marketIndices);
+          setResearchSummary(data.researchSummary);
+          setNewsArticles(data.newsArticles);
+          setLatestUpdates(data.latestUpdates);
+          setMarketSummaryArticle(data.marketSummaryArticle);
+          setUpcomingEarnings(data.upcomingEarnings);
+          setSidebarData(data.sidebarData);
+          return; // Exit if cached data is valid
+        }
+      }
+
+      console.log("Fetching fresh initial data from API.");
+      const dashboardData = await getInitialDashboardData();
+
+      setMarketIndices(dashboardData.marketIndices);
+      setResearchSummary(dashboardData.researchSummary);
+      setNewsArticles(dashboardData.newsArticles);
+      setLatestUpdates(dashboardData.latestUpdates);
+      setMarketSummaryArticle(dashboardData.marketSummaryArticle);
+      setUpcomingEarnings(dashboardData.upcomingEarnings);
+      setSidebarData(dashboardData.sidebarData);
+      
+      // Store fresh data in cache with a timestamp
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+        timestamp: new Date().getTime(),
+        data: dashboardData
+      }));
+
     } catch (err) {
       setError('Failed to fetch initial market data. The markets might be sleeping, or there was an API error.');
       console.error(err);
@@ -119,7 +152,7 @@ const App: React.FC = () => {
       <main className="mx-auto max-w-screen-2xl p-4 lg:p-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="hidden lg:block lg:col-span-2">
-            <LeftSidebar />
+            <LeftSidebar data={sidebarData} isLoading={isLoading} />
           </div>
           <div className="col-span-12 lg:col-span-7">
             <MainContent 
@@ -138,10 +171,14 @@ const App: React.FC = () => {
               screenerError={screenerError}
               screenerReasoning={screenerReasoning}
               searchingTicker={searchingTicker}
+              latestUpdates={latestUpdates}
+              marketSummaryArticle={marketSummaryArticle}
+              upcomingEarnings={upcomingEarnings}
+              newsArticles={newsArticles}
             />
           </div>
           <div className="hidden lg:block lg:col-span-3">
-            <ResearchPanel summary={researchSummary} news={newsArticles} isLoading={isLoading} />
+            <ResearchPanel summary={researchSummary} isLoading={isLoading} />
           </div>
         </div>
       </main>

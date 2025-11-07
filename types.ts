@@ -44,3 +44,46 @@ export interface StockScreenerResult {
   explanation: string;
   metrics: ScreenerMetric[];
 }
+
+// New types for the enhanced home page
+export interface LatestUpdate {
+  source: string;
+  headline: string;
+  url: string;
+  timestamp: string;
+}
+
+export interface MarketSummaryArticle {
+  headline: string;
+  content: string;
+}
+
+export interface UpcomingEarning {
+  ticker: string;
+  companyName: string;
+  date: string;
+  epsEstimate: string;
+  revenueEstimate: string;
+  period: string;
+}
+
+// New types for dynamic sidebar
+export interface WatchlistItem {
+  ticker: string;
+  companyName: string;
+  price: string;
+  changePercent: string;
+  isPositive: boolean;
+}
+
+export interface EquitySector {
+  name: string;
+  value: string;
+  change: string;
+  isPositive: boolean;
+}
+
+export interface SidebarData {
+    watchlist: WatchlistItem[];
+    equitySectors: EquitySector[];
+}

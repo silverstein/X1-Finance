@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GoogleIcon, MoonIcon, MessageIcon, UserIcon } from './icons';
+import { X1Icon, MoonIcon, MessageIcon, UserIcon } from './icons';
 
 interface HeaderProps {
   onLogoClick: () => void;
@@ -13,8 +13,8 @@ const Header: React.FC<HeaderProps> = ({ onLogoClick }) => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <button onClick={onLogoClick} className="flex items-center space-x-2 focus:outline-none">
-              <GoogleIcon className="h-6 w-6" />
-              <span className="text-xl text-gf-gray-200">X1 Finance</span>
+              <X1Icon className="h-6 w-6" />
+              <span className="text-xl text-gf-gray-200">Finance</span>
             </button>
             <span className="bg-gf-gray-800 border border-gf-gray-600 text-gf-gray-300 text-xs font-semibold px-2 py-0.5 rounded">
               Beta

@@ -1,16 +1,46 @@
-
 import React from 'react';
 import { ArrowDownIcon, ChartIcon, ListIcon } from './icons';
+import type { SidebarData } from '../types';
 
-const LeftSidebar: React.FC = () => {
-  const equitySectors = [
-    { name: 'Materials', value: '900.86', change: '-0.53%', isPositive: false },
-    { name: 'Communications', value: '586.94', change: '-0.94%', isPositive: false },
-    { name: 'Energy', value: '927.62', change: '+0.94%', isPositive: true },
-    { name: 'Industrials', value: '1,538.39', change: '-0.41%', isPositive: false },
-    { name: 'Financials', value: '645.67', change: '-0.32%', isPositive: false },
-    { name: 'Technology', value: '2,910.77', change: '-2.07%', isPositive: false },
-  ];
+interface LeftSidebarProps {
+  data: SidebarData | null;
+  isLoading: boolean;
+}
+
+const SidebarSkeleton: React.FC = () => (
+  <aside className="space-y-4 animate-pulse">
+    <div className="flex justify-between items-center">
+      <div className="h-6 bg-gf-gray-800 rounded w-24"></div>
+      <div className="flex items-center space-x-2">
+        <div className="h-6 w-6 bg-gf-gray-800 rounded-full"></div>
+        <div className="h-6 w-6 bg-gf-gray-800 rounded-full"></div>
+      </div>
+    </div>
+    <div>
+      <div className="h-4 bg-gf-gray-800 rounded w-1/3 mb-2"></div>
+      <div className="h-16 bg-gf-gray-900 p-3 rounded-lg border border-gf-gray-800"></div>
+    </div>
+    <div>
+      <div className="h-4 bg-gf-gray-800 rounded w-1/2 mb-2"></div>
+      <div className="space-y-1">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-14 bg-gf-gray-900 p-3 rounded-lg border border-gf-gray-800"></div>
+        ))}
+      </div>
+    </div>
+  </aside>
+);
+
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ data, isLoading }) => {
+  if (isLoading) {
+    return <SidebarSkeleton />;
+  }
+  
+  if (!data) {
+    return null; // Or a placeholder/error state
+  }
+
+  const { watchlist, equitySectors } = data;
 
   return (
     <aside className="space-y-4">
@@ -26,18 +56,22 @@ const LeftSidebar: React.FC = () => {
 
       <div>
         <h3 className="text-sm font-medium text-gf-gray-300 mb-2">Watchlist</h3>
-        <div className="bg-gf-gray-900 p-3 rounded-lg border border-gf-gray-800">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="font-medium text-gf-gray-100">BRK.A</p>
-              <p className="text-xs text-gf-gray-400">Berkshire Hathaw...</p>
-            </div>
-            <div className="text-right">
-              <p className="font-medium text-gf-gray-100">$739,900.00</p>
-              <p className="text-sm text-gf-green">+0.51%</p>
+        {watchlist.map(item => (
+          <div key={item.ticker} className="bg-gf-gray-900 p-3 rounded-lg border border-gf-gray-800">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-medium text-gf-gray-100">{item.ticker}</p>
+                <p className="text-xs text-gf-gray-400 truncate">{item.companyName}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-gf-gray-100">{item.price}</p>
+                <p className={`text-sm ${item.isPositive ? 'text-gf-green' : 'text-gf-red'}`}>
+                  {item.changePercent}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
 
       <div>
