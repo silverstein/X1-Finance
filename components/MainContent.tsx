@@ -209,7 +209,9 @@ const USMarketSummarySection: React.FC<{ article: MarketSummaryArticle | null; i
   <Section title="US market summary">
     {isLoading ? <SectionLoadingSkeleton count={3}/> : (
       <div className="bg-gf-gray-900 p-4 rounded-lg border border-gf-gray-800">
-        <h3 className="text-lg font-semibold text-gf-blue mb-2">{article?.headline}</h3>
+        <a href={article?.url} target="_blank" rel="noopener noreferrer" className="block">
+          <h3 className="text-lg font-semibold text-gf-blue mb-2 hover:underline">{article?.headline}</h3>
+        </a>
         <p className="text-sm text-gf-gray-300 leading-relaxed">{article?.content}</p>
       </div>
     )}

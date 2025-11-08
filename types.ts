@@ -56,6 +56,7 @@ export interface LatestUpdate {
 export interface MarketSummaryArticle {
   headline: string;
   content: string;
+  url: string;
 }
 
 export interface UpcomingEarning {
